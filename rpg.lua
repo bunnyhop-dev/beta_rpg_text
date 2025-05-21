@@ -1,21 +1,78 @@
 --[[
 BETA RELEASE 1.1.0
-- Added Lucky Box Feature
-- When Player Level up monster will level up follow player level
-- IDK will add more features later X_X
+===================
+Features Added:
+- Lucky Box System
+  * Common and Legendary boxes
+  * Different drop rates and rarities
+- Dynamic Monster Scaling
+  * Monsters level up with player progression
+  * Improved challenge scaling
 
+Known Issues:
+- Shop system incomplete
+- Some item logic needs improvement
+
+Future Plans:
+- More features to be announced
+___________________
 BETA RELEASE 1.1.1
-- Fixes bug
-- Fixes logic (Enemy Drop)
-- Added more features (Inventory, Item drop, Use item, Gold Buff EXP Buff, more...)
-- IDK what I will add in future lol
+===================
+Bug Fixes:
+- Fixed enemy drop system logic
+- Improved item handling
+
+Features Added:
+- Enhanced Inventory System
+  * Item management
+  * Equipment comparison
+  * Usage system
+- Buff System
+  * Gold multiplier (x2)
+  * EXP multiplier (x2)
+- Extended item drop mechanics
+
+Known Issues:
+- Shop system needs improvement
+- Lucky box rates need balancing
+
+Future Plans:
+- Shop system overhaul
+- More content updates planned
+___________________
 
 BETA RELEASE 1.1.2 (Current)
-- Fixes Shop logic (Added Full Shopping system)
-- Fixes Lucky box roll system (Common box and Legendary box)
-- Includes add items to inventory (Shop, Luckybox, Enemy drop)
-- Added Game Help Type 'help'
---]]
+===================
+Major Updates:
+- Complete Shop System Overhaul
+  * Full item purchasing system
+  * Equipment and consumables shop
+  * Improved user interface
+
+Bug Fixes:
+- Fixed Lucky Box roll mechanics
+  * Improved Common box rates
+  * Balanced Legendary box chances
+- Enhanced inventory system
+  * Fixed item addition logic
+  * Better inventory management
+
+Features Added:
+- Comprehensive Game Help
+  * Type 'help' for game guide
+  * Added gameplay tips
+  * Better new player experience
+
+Known Issues:
+- Some balance tweaks may be needed
+- Additional content planned
+
+Future Plans:
+- New content updates
+- Further system improvements
+- More features coming soon
+
+I'm so tired--]]
 
 local function cloneTable(tbl)
   local copy = {}
