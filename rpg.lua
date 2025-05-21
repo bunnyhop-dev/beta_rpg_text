@@ -4,17 +4,40 @@ BETA RELEASE 1.1.0
 - When Player Level up monster will level up follow player level
 - IDK will add more features later X_X
 
-BETA RELEASE 1.1.1 (Current Code)
+BETA RELEASE 1.1.1
 - Fixes bug
-- Fixes logic (Enemy Drop, Lucky Box)
+- Fixes logic (Enemy Drop)
 - Added more features (Inventory, Item drop, Use item, Gold Buff EXP Buff, more...)
 - IDK what I will add in future lol
+
+BETA RELEASE 1.1.2 (Current)
+- Fixes Shop logic (Added Full Shopping system)
+- Fixes Lucky box roll system (Common box and Legendary box)
+- Includes add items to inventory (Shop, Luckybox, Enemy drop)
+- Added Game Help Type 'help'
 --]]
 
+local function cloneTable(tbl)
+  local copy = {}
+  for k, v in pairs(tbl) do
+    if type(v) == "table" then
+      copy[k] = cloneTable(v)
+    else
+      copy[k] = v
+    end
+  end
+  return copy
+end
 
+local GAME_VERSION = "BETA RELEASE 1.1.1"
+local REST_COST = 20
+local COMMON_BOX_COST = 50
+local LEGENDARY_BOX_COST = 200
+local MAX_COMMON_BOXES = 1000
+local MAX_LEGENDARY_BOXES = 2000
+local STARTING_GOLD = 100
 
 math.randomseed(os.time())
---math.random(); math.random(); math.random()
 
 io.write("Your charactor name: ")
 local username = io.read()
@@ -55,8 +78,9 @@ local player = {
   maxHealth = 100,
   damage = 5,
   defense = 2,
-  gold = 9999999, -- Gold for test lucky box (if you want to play a game just change it to 0 :P)
+  gold = STARTING_GOLD,
   inventory = {},
+  inventory_limit = 20,
   equipped = {
     weapon = nil,
     armor = nil,
@@ -97,7 +121,7 @@ local legendary_luckybox_loot = {
   { name = "Cruz Blade", damage = 60, chance = 0.1, rank = "Legend", type = "weapon"},
   { name = "Zues Protection", defense = 100, chance = 0.01, rank = "Exotic", type = "armor"},
   { name = "Titan Armor", defense = 50, chance = 0.12, rank = "Divine", type = "armor"},
-  { name = "Fire Dragon Cloth Armor", damage = 50, defense = 60, chance = 0.01, rank = "Exotic", type = "consumable"}
+  { name = "Fire Dragon Cloth Armor", damage = 50, defense = 60, chance = 0.01, rank = "Exotic", type = "armor"}
 }
 
 local enemy_loot = {
@@ -105,10 +129,27 @@ local enemy_loot = {
   { name = "Cloth Armor", defense = 2, rank = "Common", chance = 50, type = "armor"},
   { name = "Health Potion", heal = 30, rank = "Rare", chance = 40, type = " consumable"},
   { name = "Warrior Orbs", damage = 7, defense = 5, rank = "Rare", chance = 30, type = "weapon"},
-  { name = "Gold x2", rank = "Epic", chance = 5, type = "consumable"},
-  { name = "EXP x2", rank = "Epic", chance = 5, type = "consumable"}
+  { name = "Gold x2", rank = "Epic", chance = 5, type = "buff"},
+  { name = "EXP x2", rank = "Epic", chance = 5, type = "buff"}
+}
+
+local shop_items = {
+ {name = "Basic Sword", damage = 8, price = 100, type = "weapon", rank = "Common"},
+ {name = "Chain Armor", defense = 5, price = 150, tyoe = "armor", rank = "Common"},
+ {name = "Health Potion", heal = 50, price = 30, type = "consumable", rank = "Common"},
+ {name = "Steel Sword", damage = 15, price = 300, type = "weapon", rank = "Uncommon"},
+ {name = "Steel Armor", defense = 10, price = 400, type= "armor", rank = "Uncommon"}
 }
 ----------------------------------------------------------------------------
+local function addItemToInventory(item)
+  if #player.inventory >= player.inventory_limit then
+    print("[!] Inventory is full! cannot pick up " .. item.name)
+    return false
+  end
+  table.insert(player.inventory, item)
+  return true
+end
+
 local function findItemInInventory(itemName)
   for i, item in ipairs(player.inventory) do
     if item.name == itemName then
@@ -128,9 +169,13 @@ local function equipItem(itemIndex)
 
   if item.type == "weapon" then
     if player.equipped.weapon then
+      print("\nComparing weapons:")
+      print(string.format("Current: %s (Damage: %d)", player.equipped.weapon.name, player.equipped.weapon.damage))
+      print(string.format("New: %s (Damage: %d)", item.name, item.damage))
+      
       table.insert(player.inventory, player.equipped.weapon)
-
       player.damage = player.damage - player.equipped.weapon.damage
+      print("[*] Unequipped " .. player.equipped.weapon.name)
     end
 
     player.equipped.weapon = item
@@ -141,9 +186,13 @@ local function equipItem(itemIndex)
 
   elseif item.type == "armor" then
     if player.equipped.armor then
+      print("\nComparing armor:")
+      print(string.format("Current: %s (Defense: %d)", player.equipped.armor.name, player.equipped.armor.defense))
+      print(string.format("NewL %s (Defense: %d)", item.name, item.defense))
+      
       table.insert(player.inventory, player.equipped.armor)
-
       player.defense = player.defense - player.equipped.armor.defense
+      print("[*] Unequipped: " .. player.equipped.armor.name)
     end
 
     player.equipped.armor = item
@@ -160,21 +209,13 @@ end
 
 local function enemy_dropLoot()
   local dropped_item = nil
-
   for _, item in ipairs(enemy_loot) do
     local roll = math.random() * 100
-
     if roll <= item.chance then
-
-      local new_item = {}
-      for k, v in pairs(item) do
-        new_item[k] = v
-      end
-      dropped_item = new_item
+      dropped_item = cloneTable(item)
       break
     end
   end
-
   return dropped_item
 end
 
@@ -192,7 +233,7 @@ local function useItem()
       itemInfo = itemInfo .. " (Damage: " .. item.damage .. ")"
     elseif item.type == "armor" then
       itemInfo = itemInfo .. " (Defense: " .. item.defense .. ")"
-    elseif item.type == "consumble" and item.heal then
+    elseif item.type == "consumable" and item.heal then
       itemInfo = itemInfo .. " (Heal: " .. item.heal .. ")"
     end
     print(i .. ": " .. itemInfo .. " | Type: " .. item.type)
@@ -263,17 +304,10 @@ end
 ----------------------------------------------------------------------------
 local function common_dropItem() -- common box
   local dropped_item = nil
-
   for _, item in ipairs(common_luckybox_loot) do
     local roll = math.random() * 100
-
     if roll <= item.chance then
-      
-      local new_item = {}
-      for k, v in pairs(item) do
-        new_item[k] = v
-      end
-      dropped_item = new_item
+      dropped_item = cloneTable(item)
       break
     end
   end
@@ -282,7 +316,6 @@ end
 
 local function legend_dropItem()
   local total_chance = 0
-
   for _, items in ipairs(legendary_luckybox_loot) do
     total_chance = total_chance + items.chance
   end
@@ -294,12 +327,7 @@ local function legend_dropItem()
   for _, items in ipairs(legendary_luckybox_loot) do
     current_chance = current_chance + items.chance
     if random_roll <= current_chance then
-      
-      local new_item = {}
-      for k, v in pairs(items) do
-        new_item[k] = v
-      end
-      dropped_item = new_item
+      dropped_item = cloneTable(items)
       break
     end
   end
@@ -344,7 +372,7 @@ local function checkLevelUp()
     player.maxHealth = player.maxHealth + 20
     player.health = player.maxHealth
     print("[+] Level up!! You're Level: " .. player.level .. "!")
-    
+
     enemy_list = {
       generateEnemy(player.level),
       generateEnemy(player.level)
@@ -356,21 +384,33 @@ local function checkLevelUp()
 end
 
 local function clear()
-  os.execute('clear' or 'cls')
+  if package.config.sub(1,1) == '\\' then
+    os.execute('cls')
+  else
+    os.execute('clear')
+  end
+end
+
+local function gameHelp()
+  print("\n========== Game Help ==========")
+  print("Battle: Fight monsters to gain exp and gold")
+  print("Rest: Heal yourself for " .. REST_COST .. " gold")
+  print("Explore: Find items, gold, or enemies")
+  print("Shop: Buy items or try your luck with lucky box")
+  print("Status: Check your stats and inventory")
+  print("\nTips:")
+  print("- Equip weapons and armor to increase your stats")
+  print("- Use potions during battle to heal")
+  print("- Run away from battle if your health is low")
+  print("- Save gold for better equipment")
+  print("- Inventory limit: " .. player.inventory_limit .. " items")
+  print("========== Good Luck :P ==========")
 end
 
 local function battle()
   local enemy = enemy_list[math.random(#enemy_list)]
 
-  local current_enemy = {
-    name = enemy.name,
-    exp = enemy.exp,
-    health = enemy.health,
-    maxHealth = enemy.maxHealth,
-    damage = enemy.damage,
-    defense = enemy.defense,
-    gold = enemy.gold
-  }
+  local current_enemy = cloneTable(enemy)
 
   if player.health <= 0 then
     print("[!] You're ran of health please restore your health with rest :P")
@@ -522,7 +562,7 @@ end
 
 local function shop()
   local shopping = true
-  while shopping == true do
+  while shopping do
     print("\n========== old man's shop ==========")
     print("[1] Buy Items (Sword, Armor, Potion)")
     print("[2] Lucky Box")
@@ -531,7 +571,33 @@ local function shop()
     local shop_choice = tonumber(io.read())
 
     if shop_choice == 1 then
-      -- logic
+      print("\n========== Shop Items ==========")
+      for i, item in ipairs(shop_items) do
+        local stats = ""
+        if item.damage then
+          stats = "Damage: " .. item.damage
+        elseif item.defense then
+          stats = "Defense: " .. item.defense
+        elseif item.heal then
+          stats = "Heal: " .. item.heal
+        end
+        print(string.format("[%d] %s (%s) - %d gold [%s]", i, item.name, stats, item.price, item.rank))
+      end
+      print("[0] Back")
+      io.write("> ")
+      local choice = tonumber(io.read())
+
+      if choice and choice > 0 and choice <= #shop_items then
+        local item = shop_items[choice]
+        if player.gold >= item.price then
+          player.gold = player.gold - item.price
+          local bought_item = cloneTable(item)
+          print("[+] Bought " .. item.name .. "!")
+          addItemToInventory(bought_item)
+        else
+          print("[!] Not enough gold!")
+        end
+      end
 
     elseif shop_choice == 2 then
       local luckybox_area = true
@@ -550,28 +616,41 @@ local function shop()
             print(i .. ": " .. item.name .. " | Rank: " .. item.rank .. " | Chance: " .. item.chance .. "%")
           end
 
-          if player.gold < 50 then
+          if player.gold < COMMON_BOX_COST then
             print("[!] Not Enough gold!")
-            return shop
+            break
           end
-          io.write("\nHow many boxes you want to buy?(50 Gold/Box): ")
+          io.write("\nHow many boxes you want to buy?(" .. COMMON_BOX_COST .. " Gold/Box):")
           local box = tonumber(io.read())
 
-          if box > 1000 then
-            print("[!] Maximum box is not more than 1000")
-            return true
+          if not box or box < 1 then
+            break
           end
-          player.gold = player.gold - (box * 50)
+
+          if box > MAX_COMMON_BOXES then
+            print("[!] Maximum box is " .. MAX_COMMON_BOXES)
+            break
+          end
+
+          if player.gold < (box * COMMON_BOX_COST) then
+            print("[!] Not enough gold for " .. box .. " boxes!")
+            break
+          end
+
+          player.gold = player.gold - (box * COMMON_BOX_COST)
 
           print("==========================================================")
           print("[*] Your dream come true...")
+          local items_found = 0
           for i = 1, box do
             local item = common_dropItem()
-            if item then
-              print("[+] You've got: " .. item.name .. " (Chance: " .. item.chance .. "%" .. ")")
-            else
-              print("[!] Nothing Here :P")
+            if item and addItemToInventory(item) then
+              print("[+] Box #" .. i .. ": Got " .. item.name .. " (Chance: " .. item.chance .. "%)")
+              items_found = items_found + 1
             end
+          end
+          if items_found == 0 then
+              print("[!] No items found in any boxes :(")
           end
           print("==========================================================")
 
@@ -581,41 +660,64 @@ local function shop()
             print(i .. ": " .. items.name .. " | Rank: " .. items.rank .. " | Chance: " .. items.chance .. "%")
           end
 
-          local found_rare = false
-          if player.gold < 50 then
+          if player.gold < LEGENDARY_BOX_COST then
             print("[!] Not enough gold!")
-            return shop
+            break
           end
-          io.write("\nHow many boxes you want to buy?(200 Gold/Box): ")
+          io.write("\nHow many boxes you want to buy?(" .. LEGENDARY_BOX_COST .. " Gold/Box): ")
           local box = tonumber(io.read())
-          if box > 100000 then
-            print("[!] Maximum box is not more then 2000")
-            return true
-          end
-          player.gold = player.gold - (box * 200)
 
-          for i = 1, box do
+          if not box or box < 1 then
+            break
+          end
+
+          if box > MAX_LEGENDARY_BOXES then
+            print("[!] Maximum box is " .. MAX_LEGENDARY_BOXES)
+            break
+          end
+
+          if player.gold < (box * LEGENDARY_BOX_COST) then
+            print("[!] Not enough gold for " .. box .. " boxes!")
+            break
+          end
+          player.gold = player.gold - (box * LEGENDARY_BOX_COST)
+
+          print("====================================================================")
+          print("[*] Opening " .. box .. "Legendary boxes....")
+          local rare_items = {}
+          local items_found = 0
+
+          for i =1, box do
             local items = legend_dropItem()
-            if items and items.name == "Ice Cloth Armor" or items and items.name == "Magic Orbs" or items and items.name == "Eyes of Dragon" or items and items.name == "Cruz Blade" or items and items.name == "Zues Protection" or items and items.name == "Titan Armor" or items and items.name == "Fire Dragon Cloth Armor" then
-              print("====================================================================")
-              print("[!] You've got Legendary item: " .. items.name .. " | Rank: " .. items.rank .. " | Chance: " .. items.chance)
-              found_rare = true
-              print("====================================================================")
-              break
+            if items then
+              if items.rank == "Legend" or items.rank == "Exotic" or items.rank == "Divine" then
+                table.insert(rare_items, items)
+                print("[!] RARE DROP from box #" .. i .. ": " .. items.name .. " | Rank: " .. items.rank .. " | Chance: " .. items.chance .. "%")
+              else
+                print("[+] Box#" .. i .. ": Got " .. itemms.name .. " | Rank: " .. items.rank)
+              end
+
+              if addItemToInventory(items) then
+                items_found = items_found + 1
+              end
             end
           end
 
-          if not found_rare then
-            print("[!] Nothing in here :P Better luck next time")
+          print("==================================================================")
+          if #rare_items == 0 then
+            print("[!] No rare items found. Better luck next time :P")
+          end
+          if items_found == 0 then
+            print("[!] Could not store any items - inventory full!")
           end
 
         elseif luckybox_choice == 0 then
-          return shopping
+          luckybox_area = false
         end
       end
 
     elseif shop_choice == 0 then
-      return shopping == false
+      shopping = false
     end
   end
 end
@@ -624,7 +726,8 @@ local function main()
   clear()
   while true do
     print("\n================== Main Menu =======================")
-    print("[BETA RELEASE 1.1.0 BETA FEATURES TEXT-BASED-RPG]")
+    print("[" .. GAME_VERSION .. " BETA FEATURES TEXT-BASED-RPG]")
+    print("     [type help to show game help and tips]")
     print("====================================================")
     print("[1] Battle")
     print("[2] Rest")
@@ -638,8 +741,9 @@ local function main()
     io.write("> ")
     local choice = io.read()
 
-    if choice == nil then end
-
+    if choice == "help" then
+      gameHelp()
+    end
     if choice == "1" then
       battle()
 
