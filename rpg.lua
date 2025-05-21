@@ -3,6 +3,12 @@ BETA RELEASE 1.1.0
 - Added Lucky Box Feature
 - When Player Level up monster will level up follow player level
 - IDK will add more features later X_X
+
+BETA RELEASE 1.1.1 (Current Code)
+- Fixes bug
+- Fixes logic (Enemy Drop, Lucky Box)
+- Added more features (Inventory, Item drop, Use item, Gold Buff EXP Buff, more...)
+- IDK what I will add in future lol
 --]]
 
 
@@ -51,40 +57,107 @@ local player = {
   defense = 2,
   gold = 9999999,
   inventory = {},
+  equipped = {
+    weapon = nil,
+    armor = nil,
+  }
 }
 
+local function generateEnemy(playerLevel)
+  local levelFactor = math.max(1, playerLevel * 0.5)
+
+  return {
+    name = randomString(10),
+    exp = math.floor(math.random(10, 20) * levelFactor),
+    health = math.floor(math.random(10, 15) * levelFactor),
+    maxHealth = math.floor(math.random(10, 15) * levelFactor),
+    damage = math.floor(math.random(2, 6) * levelFactor),
+    defense = math.floor(math.random(2, 5) * levelFactor),
+    gold = math.floor(math.random(9, 18) * levelFactor)
+  }
+end
+
 local enemy_list = {
-  { name = randomString(10), exp = math.random(10, 20), health = math.random(10, 15), damage = math.random(2, 6), defense = math.random(2, 5), gold = math.random(9, 18)},
-  { name = randomString(20), exp = math.random(15, 20), health = math.random(14, 18), damage = math.random(7, 10), defense = math.random(1, 3), gold = math.random(10, 25)},
+  generateEnemy(1),
+  generateEnemy(1)
 }
 
 local common_luckybox_loot = {
-  { name = "Iron Sword", damage = 10, chance = 60, rank = "Uncommon"},
-  { name = "Leater Armor", defense = 2, chance = 50, rank = "Common"},
-  { name = "Steel Sword", damage = 20, chance = 35, rank = "Rare"},
-  { name = "Health Potion", heal = 30, chance = 40, rank = "Rare"}
+  { name = "Iron Sword", damage = 10, chance = 60, rank = "Uncommon", type = "weapon"},
+  { name = "Leater Armor", defense = 2, chance = 50, rank = "Common", type = "armor"},
+  { name = "Steel Sword", damage = 20, chance = 35, rank = "Rare", type = "weapon"},
+  { name = "Health Potion", heal = 30, chance = 40, rank = "Rare", type = "consumable"}
 }
 
 local legendary_luckybox_loot = {
-  { name = "Mask of Guardian", damage = 10, chance = 0.99342, rank = "Rare"},
-  { name = "Ice Cloth Armor", defense = 15, chance = 0.98723, rank = "Rare"},
-  { name = "Magic Orbs", damage = 20, chance = 0.7, rank = "Epic"},
-  { name = "Eyes of Dragon", damage = 40, chance = 0.132, rank = "Legend"},
-  { name = "Cruz Blade", damage = 60, chance = 0.1, rank = "Legend"},
-  { name = "Zues Protection", defense = 100, chance = 0.01, rank = "Exotic"},
-  { name = "Titan Armor", defense = 50, chance = 0.12, rank = "Divine"},
-  { name = "Fire Dragon Cloth Armor", damage = 50, defense = 60, chance = 0.01, rank = "Exotic"}
+  { name = "Mask of Guardian", damage = 10, chance = 0.99342, rank = "Rare", type = "weapon"},
+  { name = "Ice Cloth Armor", defense = 15, chance = 0.98723, rank = "Rare", type = "armor"},
+  { name = "Magic Orbs", damage = 20, chance = 0.7, rank = "Epic", type = "weapon"},
+  { name = "Eyes of Dragon", damage = 40, chance = 0.132, rank = "Legend", type = "weapon"},
+  { name = "Cruz Blade", damage = 60, chance = 0.1, rank = "Legend", type = "weapon"},
+  { name = "Zues Protection", defense = 100, chance = 0.01, rank = "Exotic", type = "armor"},
+  { name = "Titan Armor", defense = 50, chance = 0.12, rank = "Divine", type = "armor"},
+  { name = "Fire Dragon Cloth Armor", damage = 50, defense = 60, chance = 0.01, rank = "Exotic", type = "consumable"}
 }
 
 local enemy_loot = {
-  { name = "Wooden Sword", damage = 5, rank = "Common", chance = 60},
-  { name = "Cloth Armor", defense = 2, rank = "Common", chance = 50},
-  { name = "Health Potion", heal = 30, rank = "Rare", chance = 40},
-  { name = "Warrior Orbs", damage = 7, defense = 5, rank = "Rare", chance = 30},
-  { name = "Gold x2", rank = "Epic", chance = 5},
-  { name = "EXP x2", rank = "Epic", chance = 5}
+  { name = "Wooden Sword", damage = 5, rank = "Common", chance = 60, type = "weapon"},
+  { name = "Cloth Armor", defense = 2, rank = "Common", chance = 50, type = "armor"},
+  { name = "Health Potion", heal = 30, rank = "Rare", chance = 40, type = " consumable"},
+  { name = "Warrior Orbs", damage = 7, defense = 5, rank = "Rare", chance = 30, type = "weapon"},
+  { name = "Gold x2", rank = "Epic", chance = 5, type = "consumable"},
+  { name = "EXP x2", rank = "Epic", chance = 5, type = "consumable"}
 }
 ----------------------------------------------------------------------------
+local function findItemInInventory(itemName)
+  for i, item in ipairs(player.inventory) do
+    if item.name == itemName then
+      return i, item
+    end
+  end
+  return nil, nil
+end
+
+local function equipItem(itemIndex)
+  local item = player.inventory[itemIndex]
+
+  if not item then
+    print("[!] Item not found in inventory!")
+    return false
+  end
+
+  if item.type == "weapon" then
+    if player.equipped.weapon then
+      table.insert(player.inventory, player.equipped.weapon)
+
+      player.damage = player.damage - player.equipped.weapon.damage
+    end
+
+    player.equipped.weapon = item
+    player.damage = player.damage + item.damage
+    table.remove(player.inventory, itemIndex)
+    print("[+] Equipped " .. item.name .. "! Damage increased by " .. item.damage)
+    return true
+
+  elseif item.type == "armor" then
+    if player.equipped.armor then
+      table.insert(player.inventory, player.equipped.armor)
+
+      player.defense = player.defense - player.equipped.armor.defense
+    end
+
+    player.equipped.armor = item
+    player.defense = player.defense + item.defense
+    table.remove(player.inventory, itemIndex)
+    print("[+] Equipped " .. item.name .. "! Defense increased by " .. item.defense)
+    return true
+
+  else
+    print("[!] This item cannot be equipped!")
+    return false
+  end
+end
+
 local function enemy_dropLoot()
   local dropped_item = nil
 
@@ -92,10 +165,16 @@ local function enemy_dropLoot()
     local roll = math.random() * 100
 
     if roll <= item.chance then
-      dropped_item = item
+
+      local new_item = {}
+      for k, v in pairs(item) do
+        new_item[k] = v
+      end
+      dropped_item = new_item
       break
     end
   end
+
   return dropped_item
 end
 
@@ -103,25 +182,83 @@ local function useItem()
   --check Inventory
   if #player.inventory == 0 then
     print("[!] Your inventory is empty!")
-    return
+    return false
   end
 
-  for i , item in ipairs(player.inventory) do
-    print(i .. ": " .. inventory.name)
-    -- ถามว่าจะใช้ไอเท็มชิ้นไหน
+  print("\n========== Your Inventory ==========")
+  for i, item in ipairs(player.inventory) do
+    local itemInfo = item.name
+    if item.type == "weapon" then
+      itemInfo = itemInfo .. " (Damage: " .. item.damage .. ")"
+    elseif item.type == "armor" then
+      itemInfo = itemInfo .. " (Defense: " .. item.defense .. ")"
+    elseif item.type == "consumble" and item.heal then
+      itemInfo = itemInfo .. " (Heal: " .. item.heal .. ")"
+    end
+    print(i .. ": " .. itemInfo .. " | Type: " .. item.type)
   end
+
+  io.write("\nChoose item to use (0 to cancel): ")
+  local choice = tonumber(io.read())
+
+  if not choice or choice == 0 or choice > #player.inventory then
+    return false
+  end
+
+  local item = player.inventory[choice]
+
+  if item.type == "consumable" then
+    if item.heal then
+      if player.health >= player.maxHealth then
+        print("[!] Your health is already full!!")
+        return false
+      end
+
+      local healAmount = math.min(item.heal, player.maxHealth - player.health)
+      player.health = player.health + healAmount
+      print("[+] Used " .. item.name .. " and restored " .. healAmount .. " HP!")
+      table.remove(player.inventory, choice)
+      return true
+    end
+
+  elseif item.type == "weapon" or item.type == "armor" then
+    return equipItem(choice)
+
+  elseif item.type == "buff" then
+    print("[+] Buff item used!")
+    table.remove(player.inventory, choice)
+    return true
+
+  else
+    print("[!] Cannot use this item!")
+    return false
+  end
+  return false
 end
 
-local function gold2()
-  local useItem() == false
-  if useItem == true then
-    local reward = math.floor(player.gold + enemy.gold) * 2
-    print("[+] You gained: " .. enemt.gold .. " But You have goldx2 You gained: " .. reward)
+local function applyGoldBuff(baseGold)
+  local buffIndex, buffItem = findItemInInventory("Gold x2")
+
+  if buffIndex then
+    local reward = baseGold * 2
+    print("[+] Gold x2 buff applied! You gained " .. reward .. " gold instead of " .. baseGold)
+    table.remove(player.inventory, buffIndex)
+    return reward
   end
+  return baseGold
 end
 
-local function exp2()
-  -- logic Exp x2
+local function applyExpBuff(baseExp)
+  local buffIndex, buffItem = findItemInInventory("EXP x2")
+
+  if buffIndex then
+    local reward = baseExp * 2
+    print("[+] EXP x2 buff applied! You gained " .. reward .. "EXP instead of " .. baseExp)
+    table.remove(player.inventory, buffIndex)
+    return reward
+  end
+
+  return baseExp
 end
 ----------------------------------------------------------------------------
 local function common_dropItem() -- common box
@@ -131,11 +268,15 @@ local function common_dropItem() -- common box
     local roll = math.random() * 100
 
     if roll <= item.chance then
-      dropped_item = item
+      
+      local new_item = {}
+      for k, v in pairs(item) do
+        new_item[k] = v
+      end
+      dropped_item = new_item
       break
     end
   end
-
   return dropped_item
 end
 
@@ -147,28 +288,51 @@ local function legend_dropItem()
   end
 
   local random_roll = math.random() * total_chance
-
+  local current_chance = 0
   local dropped_item = nil
+
   for _, items in ipairs(legendary_luckybox_loot) do
-    if random_roll <= items.chance then
-      dropped_item = items
+    current_chance = current_chance + items.chance
+    if random_roll <= current_chance then
+      
+      local new_item = {}
+      for k, v in pairs(items) do
+        new_item[k] = v
+      end
+      dropped_item = new_item
       break
-    else
-      random_roll = random_roll - items.chance
     end
   end
   return dropped_item
 end
 
 local function status()
-  local inventory_list = table.concat(player.inventory, ", ")
+  local inventory_display = "None"
+  if #player.inventory > 0 then
+    inventory_display = ""
+    for i, item in ipairs(player.inventory) do
+      if i > 1 then inventory_display = inventory_display .. ", " end
+      inventory_display = inventory_display .. item.name
+    end
+  end
+
   print("\n====== Player Status ======")
   print("Name: " .. player.name)
   print("Level: " .. player.level)
   print("Damage: " .. player.damage)
   print("Defense: " .. player.defense)
   print("Gold: " .. player.gold)
-  print("Inventory: " .. inventory_list)
+  print("Inventory: " .. inventory_display)
+
+  if player.equipped.weapon then
+    print("Equipped Weapon: " .. player.equipped.weapon.name .. " (Damage: " .. player.equipped.weapon.damage .. ")")
+  else
+    print("Equipped Weapon: None")
+  end
+
+  if player.equipped.armor then
+    print("Equipped Armor: " .. player.equipped.armor.name .. " (Defense: " .. player.equipped.armor.defense .. ")")
+  end
   return player
 end
 
@@ -180,8 +344,15 @@ local function checkLevelUp()
     player.maxHealth = player.maxHealth + 20
     player.health = player.maxHealth
     print("[+] Level up!! You're Level: " .. player.level .. "!")
+    
+    enemy_list = {
+      generateEnemy(player.level),
+      generateEnemy(player.level)
+    }
+    return true
+
   end
-  return true
+  return false
 end
 
 local function clear()
@@ -190,7 +361,16 @@ end
 
 local function battle()
   local enemy = enemy_list[math.random(#enemy_list)]
-  local enemy_health = enemy.health
+
+  local current_enemy = {
+    name = enemy.name,
+    exp = enemy.exp,
+    health = enemy.health,
+    maxHealth = enemy.maxHealth,
+    damage = enemy.damage,
+    defense = enemy.defense,
+    gold = enemy.gold
+  }
 
   if player.health <= 0 then
     print("[!] You're ran of health please restore your health with rest :P")
@@ -198,56 +378,91 @@ local function battle()
   end
 
   print("\n========================================================")
-  print("[!] A wilds " .. enemy.name .. " appears!")
+  print("[!] A wilds " .. current_enemy.name .. " appears!")
   print("========================================================")
-  while player.health > 0 and enemy_health > 0 do
-    print("\n[!] " .. enemy.name .. " Health: " .. enemy_health)
+  while player.health > 0 and current_enemy.health > 0 do
+    print("\n[!] " .. current_enemy.name .. " Health: " .. current_enemy.health)
     print("[+] " .. player.name .. " Health: " .. math.floor(player.health) .. "/" .. player.maxHealth)
     print("\n[1] Attack")
-    print("[2] Run away")
+    print("[2] Use Item")
+    print("[3] Run away!?")
     io.write("> ")
     local choice = tonumber(io.read())
 
     if choice == 1 then
       -- Player Attack First
-      enemy_health = enemy_health - player.damage
+      local damage_dealth = math.max(1, player.damage - current_enemy.defense / 2)
+      current_enemy.health = current_enemy.health - damage_dealth
       print("\n========================================================")
-      print("[+] You attacked " .. enemy.name .. " for " .. player.damage .. " damage!")
-
-      -- Enemy Turn
-      player.health = player.health - enemy.damage
-      print("[!] " .. enemy.name .. " hits you for " .. enemy.damage .. " damage!")
-      -- check player health
-      if player.health <= 0 then
-        print("\nYou were defeated by " .. enemy.name .. " and you lost half of your gold and health")
-        player.gold = player.gold / 2
-        player.health = player.health / 2
+      print("[+] You attacked " .. current_enemy.name .. " for " .. damage_dealth .. " damage!")
+      
+      if current_enemy.health > 0 then
+        local damage_taken = math.max(1, current_enemy.damage - player.defense / 2)
+        player.health = player.health - damage_taken
+        print("[!] " .. current_enemy.name .. " hits you for " .. damage_taken .. " damage!")
       end
 
-      if enemy_health <= 0 then
-        print("\n[+] You defeated " .. enemy.name .. "!")
-        print("[+] Player Gained: " .. enemy.gold .. " gold | EXP: " .. enemy.exp .. "!" )
-        player.gold = player.gold + enemy.gold
-        player.exp = player.exp + enemy.exp
+      if player.health <= 0 then
+        print("[!] You were defeated by " .. current_enemy.name .. " and lost half of your gold and health")
+        player.gold = math.floor(player.gold / 2)
+        player.health = math.max(1, math.floor(player.maxHealth * 0.1))
+        return false
+      end
+      
+      if current_enemy.health <= 0 then
+        print("[+] You defeated " .. current_enemy.name .. "!")
+
+        local dropped_item = enemy_dropLoot()
+        if dropped_item then
+          print("[+] " .. current_enemy.name .. " dropped: " .. dropped_item.name --[[.. " (" .. dropped_item.rank .. ")"--]] )
+
+          if dropped_item.name == "Gold x2" then
+            print("[+] You got a Gold x2 buff for your next battle!")
+
+          elseif dropped_item.name == "EXP x2" then
+            print("[+] You got an EXP x2 buff for your next battle!")
+          end
+
+          table.insert(player.inventory, dropped_item)
+        end
+
+        local gold_earned = applyGoldBuff(current_enemy.gold)
+        local exp_earned = applyExpBuff(current_enemy.exp)
+
+        print("[+] You gained: " .. gold_earned .. " gold | EXP: " .. exp_earned .. "!")
+        player.gold = player.gold + gold_earned
+        player.exp = player.exp + exp_earned
         checkLevelUp()
+        return true
       end
       print("========================================================")
 
     elseif choice == 2 then
+      useItem()
+
+    elseif choice == 3 then
       local escape_chance = math.random(1, 10)
 
       if escape_chance > 3 then
-        print("[+] You've escaped successfully'")
-        return
+        print("[+] You've escaped successfully!")
+        return false
+
       else
-        print("[+] You've escape failed!!'")
-        print("\n[!] Enemy attacked you " .. enemy.damage .. " damage")
-        player.health = player.health - enemy.damage
+        print("[+] Your escaped failed!!")
+        local damage_taken = math.max(1, current_enemy.damage - player.defense / 2)
+        print("[!] Enemy attacked you for " .. damage_taken .. " damage!")
+        player.health = player.health - damage_taken
+
+        if player.health <= 0 then
+          print("[!] You were defeated by " .. current_enemy.name .. " and lost half of your gold and health!")
+          player.gold = math.floor(player.gold / 2)
+          player.health = math.max(1, math.floor(player.maxHealth * 0.1))
+          return false
+        end
       end
-      return true
     end
   end
-  return false
+  return true
 end
 
 local function rest()
@@ -260,15 +475,49 @@ local function rest()
     return
   end
 
-  if player.gold >= 20 then
-    local heal_amount = math.floor(player.maxHealth - player.health)
-    print("[+] The world is safe now... (Recovered " .. heal_amount .. " HP)")
-    player.health = player.health + heal_amount
-  end
+  player.gold = player.gold - 20
+  local heal_amount = math.floor(player.maxHealth - player.health)
+  print("[+] The world is safe now... (Recovered " .. math.floor(heal_amount) .. " HP)")
+  player.health = player.maxHealth
+
 end
 
 local function explore()
+  print("\n[+] You are exploring the area...")
 
+  local event_chance = math.random(1, 10)
+
+  if event_chance <= 3 then
+    print("[!] You encountered an enemy")
+    battle()
+
+  elseif event_chance <= 6 then
+    local gold_found = math.random(5, 20) * player.level
+    print("[+] You found " .. gold_found .. " gold!")
+    player.gold = player.gold + gold_found
+
+  elseif event_chance <= 8 then
+    local item = common_dropItem()
+    if item then
+      print("[+] You found an item: " .. item.name .. " (" .. item.rank .. ")")
+      table.insert(player.inventory, item)
+
+    else
+      print("[+] You found nothing interesting...")
+    end
+
+  elseif event_chance == 9 then
+    local heal_amount = math.random(10, 30)
+    if player.health < player.maxHealth then
+      print("[+] You found some healing herbs! (Recovered " .. heal_amount .. " HP)")
+      player.health = math.min(player.maxHealth, player.health + heal_amount)
+    else
+      print("[+] You found some healing herbs, but your health is already full")
+    end
+
+  else
+    print("[+] You found nothing interesting...")
+  end
 end
 
 local function shop()
@@ -374,14 +623,15 @@ end
 local function main()
   clear()
   while true do
-    print("================== Main Menu =======================")
+    print("\n================== Main Menu =======================")
     print("[BETA RELEASE 1.1.0 BETA FEATURES TEXT-BASED-RPG]")
     print("====================================================")
     print("[1] Battle")
     print("[2] Rest")
     print("[3] Explore")
-    print("[4] Shop")
-    print("[5] Plater Status")
+    print("[4] Use Item")
+    print("[5] Shop")
+    print("[6] Player Status")
     print("[0] Exit")
     print("====================================================")
     print(player.name .. " Level: " .. player.level .. "(" .. player.exp .. "/" .. player.maxEXP .. ")" .. " | HP: " .. math.floor(player.health) .. "/" .. player.maxHealth)
@@ -400,9 +650,12 @@ local function main()
       explore()
 
     elseif choice == "4" then
-      shop()
+      useItem()
 
     elseif choice == "5" then
+      shop()
+    
+    elseif choice == "6" then
       status()
 
     elseif choice == "0" then
