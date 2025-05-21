@@ -29,7 +29,7 @@ local function cloneTable(tbl)
   return copy
 end
 
-local GAME_VERSION = "BETA RELEASE 1.1.1"
+local GAME_VERSION = "BETA RELEASE 1.1.2"
 local REST_COST = 20
 local COMMON_BOX_COST = 50
 local LEGENDARY_BOX_COST = 200
