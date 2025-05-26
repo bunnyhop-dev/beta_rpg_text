@@ -75,6 +75,7 @@ Future Plans:
 - New content updates
 - Further system improvements
 - More features coming soon
+___________________
 
 **BETA RELEASE 1.1.3 (Current)**
 =====================
