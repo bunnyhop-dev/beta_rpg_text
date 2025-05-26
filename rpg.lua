@@ -1,78 +1,5 @@
---[[
-BETA RELEASE 1.1.0
-===================
-Features Added:
-- Lucky Box System
-  * Common and Legendary boxes
-  * Different drop rates and rarities
-- Dynamic Monster Scaling
-  * Monsters level up with player progression
-  * Improved challenge scaling
-
-Known Issues:
-- Shop system incomplete
-- Some item logic needs improvement
-
-Future Plans:
-- More features to be announced
-___________________
-BETA RELEASE 1.1.1
-===================
-Bug Fixes:
-- Fixed enemy drop system logic
-- Improved item handling
-
-Features Added:
-- Enhanced Inventory System
-  * Item management
-  * Equipment comparison
-  * Usage system
-- Buff System
-  * Gold multiplier (x2)
-  * EXP multiplier (x2)
-- Extended item drop mechanics
-
-Known Issues:
-- Shop system needs improvement
-- Lucky box rates need balancing
-
-Future Plans:
-- Shop system overhaul
-- More content updates planned
-___________________
-
-BETA RELEASE 1.1.2 (Current)
-===================
-Major Updates:
-- Complete Shop System Overhaul
-  * Full item purchasing system
-  * Equipment and consumables shop
-  * Improved user interface
-
-Bug Fixes:
-- Fixed Lucky Box roll mechanics
-  * Improved Common box rates
-  * Balanced Legendary box chances
-- Enhanced inventory system
-  * Fixed item addition logic
-  * Better inventory management
-
-Features Added:
-- Comprehensive Game Help
-  * Type 'help' for game guide
-  * Added gameplay tips
-  * Better new player experience
-
-Known Issues:
-- Some balance tweaks may be needed
-- Additional content planned
-
-Future Plans:
-- New content updates
-- Further system improvements
-- More features coming soon
-
-I'm so tired--]]
+-- BETA VERSION
+-- LUNA TEAM
 
 local function cloneTable(tbl)
   local copy = {}
@@ -86,7 +13,7 @@ local function cloneTable(tbl)
   return copy
 end
 
-local GAME_VERSION = "BETA RELEASE 1.1.2"
+local GAME_VERSION = "BETA RELEASE 1.1.3"
 local REST_COST = 20
 local COMMON_BOX_COST = 50
 local LEGENDARY_BOX_COST = 200
@@ -197,6 +124,14 @@ local shop_items = {
  {name = "Steel Sword", damage = 15, price = 300, type = "weapon", rank = "Uncommon"},
  {name = "Steel Armor", defense = 10, price = 400, type= "armor", rank = "Uncommon"}
 }
+
+local lucky_wheel = {
+  {name = "Gold", reward = math.random(10, 100), chance = math.random(10, 50), rank = "Rare", type = "reward"},
+  {name = "Health Potion", reward = 1, chance = math.random(10, 50), rank = "Rare", type = "reward"},
+  {name = "Grim Reaper Mask", reward = 1, chance = 0.1, rank = "Legend", type = "weapon", damage = 70},
+  {name = "Death Knight Armor", reward = 1, chance = 20, rank = "Rare", type = "armor", defense = 35}
+}
+
 ----------------------------------------------------------------------------
 local function addItemToInventory(item)
   if #player.inventory >= player.inventory_limit then
@@ -623,6 +558,7 @@ local function shop()
     print("\n========== old man's shop ==========")
     print("[1] Buy Items (Sword, Armor, Potion)")
     print("[2] Lucky Box")
+    print("[3] Lucky Wheel")
     print("[0] Exit")
     io.write("> ")
     local shop_choice = tonumber(io.read())
@@ -773,6 +709,82 @@ local function shop()
         end
       end
 
+    elseif shop_choice == 3 then
+      local daily_used = false
+      local countdown = os.time() + 24 * 60 * 60
+      local luckyWheel = true
+      while luckyWheel == true do
+      local now = os.time()
+      local remaining = countdown - now
+
+      if remaining <= 0 and daily_used == true then
+          -- รีเซ็ต countdown และ daily_used เมื่อครบ 24 ชั่วโมง
+          countdown = os.time() + 24 * 60 * 60
+          daily_used = false
+          remaining = countdown - now
+      end
+
+      local hour = math.max(0, math.floor(remaining / 3600))
+      local minute = math.max(0, math.floor((remaining % 3600) / 60))
+      local second = math.max(0, remaining % 60)
+
+      clear()
+      print("===== Welcome to Daily Lucky Wheel! =====\n")
+
+      if daily_used == true then
+        print(string.format("Next spin available in: %02d:%02d:%02d", hour, minute, second))
+      else
+          print("Daily spin available!")
+      end
+
+      print("\nAvailable rewards:")
+      for i, loot in ipairs(lucky_wheel) do
+        print(i .. " | " .. loot.name .. " | Rank: " .. loot.rank .. " | Chance: " .. loot.chance)
+      end
+
+      print("\n[1] Spin")
+      print("[0] Back to Shop")
+      io.write("> ")
+      local choice = tonumber(io.read())
+
+      if choice == 1 then
+        if daily_used == false then
+            print("You spinned for 1 item!")
+
+            math.randomseed(os.time())
+            local random = math.random(100)
+            local selected_item
+
+            if random <= 5 then
+                selected_item = lucky_wheel[4]
+            elseif random <= 20 then
+                selected_item = lucky_wheel[3]
+            elseif random <= 50 then
+                selected_item = lucky_wheel[2]
+            else
+                selected_item = lucky_wheel[1]
+            end
+
+            print("Congratulations! You got: " .. selected_item.name .. " (Rank: " .. selected_item.rank .. ")")
+
+            daily_used = true
+            countdown = os.time() + 24 * 60 * 60
+
+            print("Press Enter to continue...")
+            io.read()
+        else
+            print("You have already used your daily spin!")
+            print(string.format("Please wait %02d:%02d:%02d for next spin", hour, minute, second))
+            print("Press Enter to continue...")
+            io.read()
+        end
+      elseif choice == 0 then
+        luckyWheel = false
+      end
+      
+      os.execute("sleep 1" or "timeout /t 1 >nul")
+       end
+
     elseif shop_choice == 0 then
       shopping = false
     end
@@ -782,10 +794,10 @@ end
 local function main()
   clear()
   while true do
-    print("\n================== Main Menu =======================")
+    print("\n================== Main Menu ========================")
     print("[" .. GAME_VERSION .. " BETA FEATURES TEXT-BASED-RPG]")
     print("     [type help to show game help and tips]")
-    print("====================================================")
+    print("=====================================================")
     print("[1] Battle")
     print("[2] Rest")
     print("[3] Explore")
@@ -793,7 +805,7 @@ local function main()
     print("[5] Shop")
     print("[6] Player Status")
     print("[0] Exit")
-    print("====================================================")
+    print("=====================================================")
     print(player.name .. " Level: " .. player.level .. "(" .. player.exp .. "/" .. player.maxEXP .. ")" .. " | HP: " .. math.floor(player.health) .. "/" .. player.maxHealth)
     io.write("> ")
     local choice = io.read()
