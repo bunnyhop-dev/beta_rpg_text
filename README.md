@@ -77,10 +77,21 @@ Future Plans:
 - More features coming soon
 ___________________
 
-**BETA RELEASE 1.1.3 (Current)**
+**BETA RELEASE 1.1.3**
 =====================
 New Updates:
 - Shop
   * Added daily lucky wheel
 
+------------------
+
+**BETA RELEASE 1.1.3.1(current)**
+====================
+New Updates:
+- Shop
+  * Improve better random item
+- Inventory
+  * Fixed bug (Add Items error)
+
+-----------------
 I'm so tired :P

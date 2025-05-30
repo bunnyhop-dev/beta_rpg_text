@@ -1,5 +1,6 @@
 -- BETA VERSION
 -- LUNA TEAM
+local socket = require("socket")
 
 local function cloneTable(tbl)
   local copy = {}
@@ -13,13 +14,13 @@ local function cloneTable(tbl)
   return copy
 end
 
-local GAME_VERSION = "BETA RELEASE 1.1.3"
+local GAME_VERSION = "BETA RELEASE 1.1.3.1"
 local REST_COST = 20
 local COMMON_BOX_COST = 50
 local LEGENDARY_BOX_COST = 200
 local MAX_COMMON_BOXES = 1000
 local MAX_LEGENDARY_BOXES = 2000
-local STARTING_GOLD = 100
+local STARTING_GOLD = 99999999999
 
 math.randomseed(os.time())
 
@@ -312,18 +313,67 @@ local function legend_dropItem()
     total_chance = total_chance + items.chance
   end
 
+  math.randomseed(os.time() + math.random(1000))
   local random_roll = math.random() * total_chance
   local current_chance = 0
-  local dropped_item = nil
 
   for _, items in ipairs(legendary_luckybox_loot) do
     current_chance = current_chance + items.chance
     if random_roll <= current_chance then
-      dropped_item = cloneTable(items)
-      break
+      return cloneTable(items)
     end
   end
-  return dropped_item
+  return nil
+end
+
+function randomize_item_legend(duration, target_item)
+  duration = duration or 3
+  local messages = { "Mask of Guardian", "Ice Cloth Armor", "Magic Orbs", "Eyes of Dragon", "Cruz Blade", "Zues Protection", "Titan Armor", "Fire Dragon Cloth Armor" }
+  
+  local start_time = socket.gettime()
+  math.randomseed(os.time())
+
+  while socket.gettime() - start_time < duration do
+    local msg = messages[math.random(#messages)]
+    io.write("\r[*] God choosing: " .. msg .. "          ")
+    io.flush()
+    socket.sleep(0.1)
+  end
+
+  if target_item then
+    io.write("\r[*] God choosing: " .. target_item.name .. "      ")
+    print()
+    return target_item
+  else
+    io.write("\r[*] God choosing: Nothing...       \n")
+    print()
+    return nil
+  end
+end
+
+function randomize_item_common(duration, target_item)
+  duration = duration or 3
+  local messages = { "Iron Sword", "Leater Armor", "Steel Sword", "Health Potion"}
+
+  local start_time = socket.gettime()
+  math.randomseed(os.time())
+
+  while socket.gettime() - start_time < duration do
+    local msg = messages[math.random(#messages)]
+    io.write("\r[*] God choosing: " .. msg .. "          ")
+    io.flush()
+    socket.sleep(0.1)
+  end
+
+  if target_item then
+    io.write("\r[*] God choosing: " .. target_item.name .. "          ")
+    print()
+    return target_item
+  else
+    io.write("\r[*] God choosing: Nothing...          \n")
+    print()
+    return nil
+  end
 end
 
 local function status()
@@ -633,12 +683,13 @@ local function shop()
           player.gold = player.gold - (box * COMMON_BOX_COST)
 
           print("==========================================================")
-          print("[*] Your dream come true...")
+          print("[*] Opening " .. box .. " Common boxes....\n")
           local items_found = 0
           for i = 1, box do
             local item = common_dropItem()
-            if item and addItemToInventory(item) then
-              print("[+] Box #" .. i .. ": Got " .. item.name .. " (Chance: " .. item.chance .. "%)")
+            local result = randomize_item_common(3, item)
+            if result and addItemToInventory(result) then
+              print("[+] Box #" .. i .. ": Got " .. result.name .. " (Chance: " .. result.chance .. "%)\n")
               items_found = items_found + 1
             end
           end
@@ -676,21 +727,22 @@ local function shop()
           player.gold = player.gold - (box * LEGENDARY_BOX_COST)
 
           print("====================================================================")
-          print("[*] Opening " .. box .. "Legendary boxes....")
+          print("[*] Opening " .. box .. " Legendary boxes....\n")
           local rare_items = {}
           local items_found = 0
 
-          for i =1, box do
+          for i = 1, box do
             local items = legend_dropItem()
-            if items then
-              if items.rank == "Legend" or items.rank == "Exotic" or items.rank == "Divine" then
-                table.insert(rare_items, items)
-                print("[!] RARE DROP from box #" .. i .. ": " .. items.name .. " | Rank: " .. items.rank .. " | Chance: " .. items.chance .. "%")
+            local result = randomize_item_legend(3, items)
+            if result then
+              if result.rank == "Legend" or result.rank == "Exotic" or result.rank == "Divine" then
+                table.insert(rare_items, result)
+                print("[!] RARE DROP from box #" .. i .. ": " .. result.name .. " | Rank: " .. result.rank .. " | Chance: " .. result.chance .. "%\n")
               else
-                print("[+] Box#" .. i .. ": Got " .. itemms.name .. " | Rank: " .. items.rank)
+                print("[+] Box#" .. i .. ": Got>> " .. result.name .. " | Rank: " .. result.rank .. "\n")
               end
 
-              if addItemToInventory(items) then
+              if addItemToInventory(result) then
                 items_found = items_found + 1
               end
             end
